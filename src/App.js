@@ -1,4 +1,4 @@
-import React, { Fragment, useEffect } from "react";
+import React, { Fragment } from "react";
 import Dashboard from "./components/Dashboard";
 
 const App = () => {

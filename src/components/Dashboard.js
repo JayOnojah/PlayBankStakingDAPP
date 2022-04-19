@@ -6,10 +6,10 @@ import {
     CreditCardIcon,
     HomeIcon,
     QuestionMarkCircleIcon,
-    ScaleIcon,
     ShieldCheckIcon,
-    UserGroupIcon,
     XIcon,
+    CalculatorIcon,
+    RefreshIcon
 } from '@heroicons/react/outline'
 import {
     CashIcon,
@@ -19,20 +19,17 @@ import {
 const navigation = [
     { name: 'Dashboard', href: '#', icon: HomeIcon, current: true },
     { name: 'Account', href: '#', icon: ClockIcon, current: false },
-    { name: 'Calculator', href: '#', icon: ScaleIcon, current: false },
+    { name: 'Calculator', href: '#', icon: CalculatorIcon, current: false },
     { name: 'Buy Tokens', href: '#', icon: CreditCardIcon, current: false },
-    { name: 'Swap', href: '#', icon: UserGroupIcon, current: false },
+    { name: 'Swap', href: '#', icon: RefreshIcon, current: false },
 ]
+
 const secondaryNavigation = [
     { name: 'Facebook', href: '#', icon: CogIcon },
     { name: 'Twitter', href: '#', icon: QuestionMarkCircleIcon },
     { name: 'Discord', href: '#', icon: ShieldCheckIcon },
 ]
-const cards = [
-    { name: 'Account balance', href: '#', icon: ScaleIcon, amount: '$30,659.45' },
-    { name: 'Account balance', href: '#', icon: ScaleIcon, amount: '$30,659.45' },
-    { name: 'Account balance', href: '#', icon: ScaleIcon, amount: '$30,659.45' },
-]
+
 const transactions = [
     {
         id: 1,
@@ -45,7 +42,7 @@ const transactions = [
         datetime: '2020-07-11',
     },
     {
-        id: 1,
+        id: 2,
         name: 'Payment to Molly Sanders',
         href: '#',
         amount: '$20,000',
@@ -55,7 +52,27 @@ const transactions = [
         datetime: '2020-07-11',
     },
     {
-        id: 1,
+        id: 3,
+        name: 'Payment to Molly Sanders',
+        href: '#',
+        amount: '$20,000',
+        currency: 'USD',
+        status: 'success',
+        date: 'July 11, 2020',
+        datetime: '2020-07-11',
+    },
+    {
+        id: 4,
+        name: 'Payment to Molly Sanders',
+        href: '#',
+        amount: '$20,000',
+        currency: 'USD',
+        status: 'success',
+        date: 'July 11, 2020',
+        datetime: '2020-07-11',
+    },
+    {
+        id: 5,
         name: 'Payment to Molly Sanders',
         href: '#',
         amount: '$20,000',
@@ -65,6 +82,7 @@ const transactions = [
         datetime: '2020-07-11',
     },
 ]
+
 const statusStyles = {
     success: 'bg-green-100 text-green-800',
     processing: 'bg-yellow-100 text-yellow-800',
@@ -193,7 +211,7 @@ const Dashboard = () => {
                                         href={item.href}
                                         className={classNames(
                                             item.current ? 'bg-cyan-800 text-white' : 'text-cyan-100 hover:text-white hover:bg-cyan-600',
-                                            'group flex items-center px-2 py-3 my-4 text-lg leading-6 font-medium rounded-md'
+                                            'group flex items-center px-2 py-3 text-lg leading-6 font-medium rounded-md'
                                         )}
                                         aria-current={item.current ? 'page' : undefined}
                                     >
@@ -238,7 +256,7 @@ const Dashboard = () => {
                                                         src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=facearea&facepad=2.6&w=256&h=256&q=80"
                                                         alt=""
                                                     />
-                                                    <h1 className="ml-3 text-2xl font-bold leading-7 text-gray-900 sm:leading-9 sm:truncate">
+                                                    <h1 className="ml-3 text-3xl font-bold leading-7 text-gray-900 sm:leading-9 sm:truncate">
                                                         Dashboard
                                                     </h1>
                                                 </div>
@@ -268,38 +286,91 @@ const Dashboard = () => {
                             <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
                                 <h2 className="text-lg leading-6 font-medium text-gray-900">Overview</h2>
                                 <div className="mt-2 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                                    {/* Card */}
-                                    {cards.map((card) => (
-                                        <div key={card.name} className="bg-white overflow-hidden shadow rounded-lg">
-                                            <div className="p-5">
-                                                <div className="flex items-center">
-                                                    <div className="flex-shrink-0">
-                                                        <card.icon className="h-6 w-6 text-gray-400" aria-hidden="true" />
-                                                    </div>
-                                                    <div className="ml-5 w-0 flex-1">
-                                                        <dl>
-                                                            <dt className="text-sm font-medium text-gray-500 truncate">{card.name}</dt>
-                                                            <dd>
-                                                                <div className="text-lg font-medium text-gray-900">{card.amount}</div>
-                                                            </dd>
-                                                        </dl>
-                                                    </div>
+                                    {/* Dashboard Cards */}
+                                    <div className="bg-white overflow-hidden shadow rounded-lg">
+                                        <div className="p-5">
+                                            <div className="flex items-center">
+                                                <div className="flex-shrink-0">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-red-400" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" >
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
                                                 </div>
-                                            </div>
-                                            <div className="bg-gray-50 px-5 py-3">
-                                                <div className="text-sm">
-                                                    <a href={card.href} className="font-medium text-cyan-700 hover:text-cyan-900">
-                                                        View all
-                                                    </a>
+                                                <div className="ml-5 w-0 flex-1">
+                                                    <dl>
+                                                        <dt className="text-sm font-medium text-gray-500 truncate">Total Earnings</dt>
+                                                        <dd>
+                                                            <div className="text-2xl font-medium mt-2 text-gray-900">54,923.72</div>
+                                                        </dd>
+                                                    </dl>
                                                 </div>
                                             </div>
                                         </div>
-                                    ))}
+                                        <div className="bg-gray-50 px-5 py-3">
+                                            <div className="text-sm">
+                                                <a href="/" className="font-medium text-blue-700 hover:text-cyan-900">
+                                                    Withdraw
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="bg-white overflow-hidden shadow rounded-lg">
+                                        <div className="p-5">
+                                            <div className="flex items-center">
+                                                <div className="flex-shrink-0">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-green-400" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" >
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                </div>
+                                                <div className="ml-5 w-0 flex-1">
+                                                    <dl>
+                                                        <dt className="text-sm font-medium text-gray-500 truncate">mUST Balance</dt>
+                                                        <dd>
+                                                            <div className="text-2xl font-medium mt-2 text-gray-900">30,659.56</div>
+                                                        </dd>
+                                                    </dl>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="bg-gray-50 px-5 py-3">
+                                            <div className="text-sm">
+                                                <a href="/" className="font-medium text-green-700 hover:text-cyan-900">
+                                                    Unstake
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className="bg-white overflow-hidden shadow rounded-lg">
+                                        <div className="p-5">
+                                            <div className="flex items-center">
+                                                <div className="flex-shrink-0">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-blue-400" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" >
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                </div>
+                                                <div className="ml-5 w-0 flex-1">
+                                                    <dl>
+                                                        <dt className="text-sm font-medium text-gray-500 truncate">RWD Balance</dt>
+                                                        <dd>
+                                                            <div className="text-2xl font-medium mt-2 text-gray-900">22,469.45</div>
+                                                        </dd>
+                                                    </dl>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="bg-gray-50 px-5 py-3">
+                                            <div className="text-sm">
+                                                <a href="/" className="font-medium text-red-700 hover:text-cyan-900">
+                                                    Withdraw
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {/* End Dashboard Cards */}
                                 </div>
                             </div>
 
                             <h2 className="max-w-6xl mx-auto mt-8 px-4 text-lg leading-6 font-medium text-gray-900 sm:px-6 lg:px-8">
-                                Recent activity
+                                Recent Activity
                             </h2>
 
                             {/* Activity list (smallest breakpoint only) */}
