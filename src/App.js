@@ -9,4 +9,4 @@ const App = () => {
   );
 }
 
-export default Dashboard;
+export default App;
