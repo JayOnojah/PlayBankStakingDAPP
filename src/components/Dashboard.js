@@ -20,7 +20,7 @@ import RWD from '../truffle_abis/RWD.json';
 import Tether from '../truffle_abis/Tether.json';
 import PlayBank from '../truffle_abis/PlayBank.json';
 
-import logo from '../images/play-bank.svg';
+import logo from '../images/logo.png';
 
 const navigation = [
     { name: 'Dashboard', href: '#', icon: HomeIcon, current: true },
@@ -36,12 +36,6 @@ const secondaryNavigation = [
     { name: 'Discord', href: '#', icon: ArrowCircleRightIcon },
 ];
 
-const statusStyles = {
-    success: 'bg-green-100 text-green-800',
-    processing: 'bg-yellow-100 text-yellow-800',
-    failed: 'bg-gray-100 text-gray-800',
-}
-
 function classNames(...classes) {
     return classes.filter(Boolean).join(' ')
 }
@@ -51,12 +45,12 @@ const Dashboard = () => {
     useEffect(() => {
         loadBlockchainData();
         checkAccount();
-    }, []);
+    });
 
 
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [account, setAccount] = useState(null);
-    let [web3, setWeb3] = useState(null)
+    const [web3, setWeb3] = useState(null)
     const [tether, setTether] = useState({});
 
     const [rwd, setRwd] = useState({});
@@ -64,28 +58,9 @@ const Dashboard = () => {
     const [tetherBalance, setTetherBalance] = useState("0");
     const [rwdBalance, setRwdBalance] = useState("0");
     const [stakingBalance, setStakingBalance] = useState("0");
+    const [amount, setAmount] = useState("0");
+    const [formattedAmount, setFormattedAmount] = useState("0");
     const [loading, setLoading] = useState(true);
-
-    // Invoke to Connect to wallet account
-    async function activate() {
-        if (window.ethereum) {
-            try {
-                await window.ethereum.request({ method: 'eth_requestAccounts' });
-                checkAccount();
-            } catch (err) {
-                console.log("User did not add account...", err);
-            }
-        } else if (window.web3) {
-            window.web3 = new Web3(window.web3.currentProvider);
-        } else {
-            new Noty({
-                type: 'error',
-                text: 'Your Ethereum Wallet is not Connected!',
-                timeout: 5000,
-                progressBar: true
-            }).show();
-        }
-    }
 
     // Invoke to check if account is already connected
     async function checkAccount() {
@@ -103,9 +78,12 @@ const Dashboard = () => {
             // Load mUSDT Contract
             const tetherData = Tether.networks[networkId];
 
+            console.log(tetherData);
+
             if (tetherData) {
                 const tether = new web3.eth.Contract(Tether.abi, tetherData.address);
                 setTether(tether);
+                console.log(tether);
                 let tetherBalance = await tether.methods.balanceOf(account).call();
                 setTetherBalance(tetherBalance.toString());
             } else {
@@ -157,168 +135,209 @@ const Dashboard = () => {
         }
     }
 
+    // Staking Tokens
+    const stakeTokens = (e, amount) => {
+        e.preventDefault();
+
+        console.log(formattedAmount);
+
+        if (amount > 0) {
+            setLoading(true);
+            tether.methods.approve(playBank._address, amount).send({ from: account }).on('transactionHash', (hash) => {
+                playBank.methods.depositTokens(amount).send({ from: account }).on('transactionHash', (hash) => {
+                    setLoading(false);
+                });
+            });
+        } else {
+            new Noty({
+                type: 'error',
+                text: 'Your staking amount must be greater than 0',
+                timeout: 5000,
+                progressBar: true
+            }).show();
+        }
+    }
+
+    // Unstake Tokens
+    const unstakeTokens = (e) => {
+        e.preventDefault();
+
+        setLoading(true);
+        playBank.methods.unstakeTokens().send({ from: account }).on('transactionHash', (hash) => {
+            setLoading(false);
+        });
+    }
+
     let content;
 
-    {
-        loading ? content = (
-            <div className="text-center">
-                <svg role="status" className="inline mr-2 w-10 h-10 text-gray-200 animate-spin dark:text-gray-600 fill-gray-600" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor" />
-                    <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill" />
-                </svg>
+    (web3 === null || loading || !rwd || !tether || !playBank) ? content = (
+        <div className="text-center">
+            <svg role="status" className="inline mr-2 w-10 h-10 text-gray-200 animate-spin dark:text-gray-600 fill-gray-600" viewBox="0 0 100 101" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z" fill="currentColor" />
+                <path d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z" fill="currentFill" />
+            </svg>
+        </div>
+    ) : content = (
+        <div className="mt-2 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-2">
+            {/* Dashboard Cards */}
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+                <div className="p-5">
+                    <div className="flex items-center">
+                        <div className="flex-shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-red-400" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" >
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div className="mt-3 ml-5 w-0 flex-1">
+                            <dl>
+                                <dt className="text-sm font-medium text-gray-500 truncate">RWD Balance</dt>
+                                <dd>
+                                    <div className="text-4xl font-medium py-2 mt-2 text-gray-900">
+                                        <CurrencyFormat
+                                            value={web3.utils.fromWei(rwdBalance, 'Ether')}
+                                            decimalSeperator="."
+                                            decimalScale={2}
+                                            fixedDecimalScale={true}
+                                            displayType={'text'}
+                                            thousandSeparator={true}
+                                            renderText={(value) => (
+                                                <span className="font-semibold"> {value} <span className="text-lg text-cyan-700">RWD</span></span>
+                                            )}
+                                        />
+                                    </div>
+                                </dd>
+                            </dl>
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-gray-50 px-5 py-3">
+                    <div className="text-sm">
+                        <a href="/" className="font-medium text-blue-700 hover:text-cyan-900">
+                            Buy RWD
+                        </a>
+                    </div>
+                </div>
             </div>
-        ) : content = (
-            <div className="mt-2 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-2">
-                {/* Dashboard Cards */}
-                <div className="bg-white overflow-hidden shadow rounded-lg">
-                    <div className="p-5">
-                        <div className="flex items-center">
-                            <div className="flex-shrink-0">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-red-400" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" >
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                            <div className="mt-3 ml-5 w-0 flex-1">
-                                <dl>
-                                    <dt className="text-sm font-medium text-gray-500 truncate">Total Earnings</dt>
-                                    <dd>
-                                        <div className="text-4xl font-medium py-2 mt-2 text-gray-900">
-                                            <CurrencyFormat
-                                                value="54,923.72"
-                                                decimalSeperator="."
-                                                decimalScale={2}
-                                                fixedDecimalScale={true}
-                                                displayType={'text'}
-                                                thousandSeparator={true}
-                                                renderText={(value) => (
-                                                    <span className="font-semibold"> {value} <span className="text-lg text-cyan-700">RWD</span></span>
-                                                )}
-                                            />
-                                        </div>
-                                    </dd>
-                                </dl>
-                            </div>
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+                <div className="p-5">
+                    <div className="flex items-center">
+                        <div className="flex-shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-green-400" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" >
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
                         </div>
-                    </div>
-                    <div className="bg-gray-50 px-5 py-3">
-                        <div className="text-sm">
-                            <a href="/" className="font-medium text-blue-700 hover:text-cyan-900">
-                                WITHDRAW
-                            </a>
+                        <div className="mt-3 ml-5 w-0 flex-1">
+                            <dl>
+                                <dt className="text-sm font-medium text-gray-500 truncate">mUST Balance</dt>
+                                <dd>
+                                    <div className="text-4xl font-medium py-2 mt-2 text-gray-900">
+                                        <CurrencyFormat
+                                            value={web3.utils.fromWei(tetherBalance, 'Ether')}
+                                            decimalSeperator="."
+                                            decimalScale={2}
+                                            fixedDecimalScale={true}
+                                            displayType={'text'}
+                                            thousandSeparator={true}
+                                            renderText={(value) => (
+                                                <span className="font-semibold"> {value} <span className="text-lg text-cyan-700">mUSDT</span></span>
+                                            )}
+                                        />
+                                    </div>
+                                </dd>
+                            </dl>
                         </div>
                     </div>
                 </div>
-                <div className="bg-white overflow-hidden shadow rounded-lg">
-                    <div className="p-5">
-                        <div className="flex items-center">
-                            <div className="flex-shrink-0">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-green-400" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" >
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                            <div className="mt-3 ml-5 w-0 flex-1">
-                                <dl>
-                                    <dt className="text-sm font-medium text-gray-500 truncate">mUST Balance</dt>
-                                    <dd>
-                                        <div className="text-4xl font-medium py-2 mt-2 text-gray-900">
-                                            <CurrencyFormat
-                                                value={tetherBalance}
-                                                decimalSeperator="."
-                                                decimalScale={2}
-                                                fixedDecimalScale={true}
-                                                displayType={'text'}
-                                                thousandSeparator={true}
-                                                renderText={(value) => (
-                                                    <span className="font-semibold"> {value} <span className="text-lg text-cyan-700">mUSDT</span></span>
-                                                )}
-                                            />
-                                        </div>
-                                    </dd>
-                                </dl>
-                            </div>
-                        </div>
+                <div className="bg-gray-50 px-5 py-3">
+                    <div className="text-sm">
+                        <a href="/" className="font-medium text-green-700 hover:text-cyan-900">
+                            Buy mUSDT
+                        </a>
                     </div>
-                    <div className="bg-gray-50 px-5 py-3">
-                        <div className="text-sm">
-                            <a href="/" className="font-medium text-green-700 hover:text-cyan-900">
-                                DEPOSIT
-                            </a>
+                </div>
+            </div>
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+                <div className="p-5">
+                    <div className="flex items-center">
+                        <div className="flex-shrink-0">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-blue-400" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" >
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div className="mt-3 ml-5 w-0 flex-1">
+                            <dl>
+                                <dt className="text-sm font-medium text-gray-500 truncate">Total Earnings</dt>
+                                <dd>
+                                    <div className="text-4xl font-medium py-2 mt-2 marker:mt-2 text-gray-900">
+                                        <CurrencyFormat
+                                            value={web3.utils.fromWei(stakingBalance, 'Ether')}
+                                            decimalSeperator="."
+                                            decimalScale={2}
+                                            fixedDecimalScale={true}
+                                            displayType={'text'}
+                                            thousandSeparator={true}
+                                            renderText={(value) => (
+                                                <span className="font-semibold"> {value} <span className="text-lg text-cyan-700">RWD</span></span>
+                                            )}
+                                        />
+                                    </div>
+                                </dd>
+                            </dl>
                         </div>
                     </div>
                 </div>
-                <div className="bg-white overflow-hidden shadow rounded-lg">
-                    <div className="p-5">
-                        <div className="flex items-center">
-                            <div className="flex-shrink-0">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-blue-400" aria-hidden="true" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" >
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                            <div className="mt-3 ml-5 w-0 flex-1">
-                                <dl>
-                                    <dt className="text-sm font-medium text-gray-500 truncate">RWD Balance</dt>
-                                    <dd>
-                                        <div className="text-4xl font-medium py-2 mt-2 marker:mt-2 text-gray-900">
-                                            <CurrencyFormat
-                                                value="22469.4567"
-                                                decimalSeperator="."
-                                                decimalScale={2}
-                                                fixedDecimalScale={true}
-                                                displayType={'text'}
-                                                thousandSeparator={true}
-                                                renderText={(value) => (
-                                                    <span className="font-semibold"> {value} <span className="text-lg text-cyan-700">RWD</span></span>
-                                                )}
-                                            />
-                                        </div>
-                                    </dd>
-                                </dl>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="bg-gray-50 px-5 py-3">
-                        <div className="text-sm my-3.5">
-                            <button
-                                type="button"
-                                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-cyan-600 hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 w-98"
-                            >
-                                Buy Tokens
-                            </button>
-                        </div>
+                <div className="bg-gray-50 px-5 py-3 mt-1">
+                    <div className="text-sm my-3.5">
+                        <button
+                            type="button"
+                            onClick={unstakeTokens}
+                            className="px-4 py-2 border border-transparent shadow-sm text-lg font-medium rounded-md text-white bg-cyan-600 hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 w-full"
+                        >
+                            Unstake Tokens
+                        </button>
                     </div>
                 </div>
-                <div className="bg-white overflow-hidden shadow rounded-lg">
-                    <div className="p-5">
+            </div>
+            <div className="bg-white overflow-hidden shadow rounded-lg">
+                <div className="p-5">
+                    <div>
+                        <label htmlFor="name" className="ml-px block text-md font-medium text-gray-500 mt-5 mb-4">
+                            Enter Amount to Stake
+                        </label>
                         <div>
-                            <label htmlFor="name" className="ml-px block text-md font-medium text-gray-500 mt-5 mb-4">
-                                Enter Amount to Stake
-                            </label>
-                            <div className="mt-1">
-                                <input
-                                    type="text"
-                                    name="name"
-                                    id="name"
-                                    className="shadow-sm focus:ring-cyan-600 focus:border-cyan-600 border-2 block w-full sm:text-sm border-gray-300 px-4 rounded-md"
-                                    placeholder="Enter amount of tokens..."
-                                />
-                            </div>
-                        </div>
-                    </div>
-                    <div className="bg-gray-50 px-5 py-3">
-                        <div className="text-sm my-3">
-                            <button
-                                type="button"
-                                className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-cyan-600 hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-                            >
-                                Stake Tokens
-                            </button>
+                            <CurrencyFormat
+                                value={amount}
+                                decimalSeperator="."
+                                decimalScale={2}
+                                fixedDecimalScale={true}
+                                thousandSeparator={true}
+                                className="py-2 shadow-sm focus:ring-cyan-600 focus:border-cyan-600 border-2 block w-full  border-gray-300 px-4 rounded-md"
+                                onValueChange={(values) => {
+                                    const { formattedValue, value } = values;
+                                    setAmount(value);
+                                    setFormattedAmount(formattedValue);
+                                }}
+                                placeholder="Enter amount of tokens..."
+                                required
+                            />
                         </div>
                     </div>
                 </div>
-                {/* End Dashboard Cards */}
+                <div className="bg-gray-50 px-5 py-3">
+                    <div className="text-sm my-3">
+                        <button
+                            type="button"
+                            onClick={(e) => stakeTokens(e, amount)}
+                            className="px-4 py-2 border border-transparent shadow-sm text-lg font-medium rounded-md text-white bg-cyan-600 hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 w-full"
+                        >
+                            Stake Tokens
+                        </button>
+                    </div>
+                </div>
             </div>
-        )
-    }
+            {/* End Dashboard Cards */}
+        </div>
+    );
 
     return (
         <>
@@ -370,7 +389,7 @@ const Dashboard = () => {
                                     <img
                                         className="h-8 w-auto"
                                         src={logo}
-                                        alt="Play Bank Logo"
+                                        alt="Play Bank Logo Icon"
                                     />
                                 </div>
                                 <nav
@@ -424,8 +443,9 @@ const Dashboard = () => {
                             <img
                                 className="h-8 w-auto"
                                 src={logo}
-                                alt="Play Bank Logo"
+                                alt="Play Bank Logo Icon"
                             />
+                            <span className="ml-3 text-3xl text-white font-bold">PlayBank</span>
                         </div>
                         <nav className="mt-10 flex-1 flex flex-col divide-y divide-cyan-800 overflow-y-auto" aria-label="Sidebar">
                             <div className="px-2 space-y-1">
@@ -474,8 +494,8 @@ const Dashboard = () => {
                                         <div className="flex items-center">
                                             <div>
                                                 <div className="flex items-center">
-                                                    <h1 className="ml-3 text-3xl font-bold leading-7 text-gray-900 sm:leading-9 sm:truncate">
-                                                        Dashboard
+                                                    <h1 className="text-3xl font-bold leading-7 text-gray-900 sm:leading-9 sm:truncate">
+                                                        Staking DAPP
                                                     </h1>
                                                 </div>
                                             </div>
@@ -486,8 +506,9 @@ const Dashboard = () => {
                                             type="button"
                                             className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500 cursor-pointer"
                                         >
-                                            <div className="mr-2 w-2 h-2 bg-green-500 rounded-full"></div> {smartTruncate(account, 11, { position: 5 })}
+                                            <div className="mr-2 w-2 h-2 bg-green-500 rounded-full"></div> {web3 === null || loading ? "Loading..." : smartTruncate(account, 11, { position: 5 })}
                                         </div>
+
                                         <button
                                             type="button"
                                             className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-cyan-600 hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500"
@@ -501,7 +522,7 @@ const Dashboard = () => {
 
                         <div className="mt-8">
                             <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-                                <h2 className="text-lg leading-6 font-medium text-gray-900 my-6 ml-2">Overview</h2>
+                                <h2 className="text-lg leading-6 font-medium text-gray-900 my-6 ml-2">Dashboard</h2>
                                 {content}
                             </div>
                         </div>
