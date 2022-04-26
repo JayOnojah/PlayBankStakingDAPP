@@ -16,6 +16,8 @@ import Noty from "noty";
 import '../../node_modules/noty/lib/noty.css';
 import '../../node_modules/noty/lib/themes/mint.css';
 
+//import getWeb3 from "../getWeb3";
+
 import RWD from '../truffle_abis/RWD.json';
 import Tether from '../truffle_abis/Tether.json';
 import PlayBank from '../truffle_abis/PlayBank.json';
@@ -41,18 +43,10 @@ function classNames(...classes) {
 }
 
 const Dashboard = () => {
-
-    useEffect(() => {
-        loadBlockchainData();
-        checkAccount();
-    });
-
-
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [account, setAccount] = useState(null);
     const [web3, setWeb3] = useState(null)
     const [tether, setTether] = useState({});
-
     const [rwd, setRwd] = useState({});
     const [playBank, setPlayBank] = useState({});
     const [tetherBalance, setTetherBalance] = useState("0");
@@ -62,7 +56,108 @@ const Dashboard = () => {
     const [formattedAmount, setFormattedAmount] = useState("0");
     const [loading, setLoading] = useState(true);
 
-    // Invoke to check if account is already connected
+    useEffect(() => {
+        (async () => {
+            try {
+                if (window.ethereum) {
+                    window.web3 = new Web3(window.ethereum)
+                    await window.ethereum.request({ method: 'eth_requestAccounts' });
+                }
+                else if (window.web3) {
+                    window.web3 = new Web3(window.web3.currentProvider)
+                }
+                else {
+                    window.alert('Non ethereum browser detected. You should consider Metamask!')
+                }
+            } catch (e) {
+                console.log("Error: ", e);
+            }
+        })();
+
+        (async () => {
+            try {
+                const web3 = window.web3;
+                const accounts = await web3.eth.getAccounts();
+                console.log(account);
+                setAccount(accounts[0]);
+
+                const networkId = await web3.eth.net.getId();
+
+                // Load mUSDT Contract
+                const tetherData = Tether.networks[networkId];
+
+                if (tetherData) {
+                    const tether = new web3.eth.Contract(Tether.abi, tetherData.address);
+                    setTether(tether);
+                    let tetherBalance = await tether.methods.balanceOf(account).call();
+                    setTetherBalance(tetherBalance.toString());
+                } else {
+                    new Noty({
+                        type: 'error',
+                        text: 'Your Ethereum Wallet is not Connected!',
+                        timeout: 5000,
+                        progressBar: true
+                    }).show();
+                }
+
+                // Load RWD Contract
+                const rwdData = RWD.networks[networkId];
+
+                if (rwdData) {
+                    const rwd = new web3.eth.Contract(RWD.abi, rwdData.address);
+                    setRwd(rwd);
+                    let rwdBalance = await rwd.methods.balanceOf(account).call();
+                    setRwdBalance(rwdBalance.toString());
+                } else {
+                    new Noty({
+                        type: 'error',
+                        text: 'Your Ethereum Wallet is not Connected!',
+                        timeout: 5000,
+                        progressBar: true
+                    }).show();
+                }
+
+                // Load PlayBank Contract
+                const playBankData = PlayBank.networks[networkId];
+
+                if (playBankData) {
+                    const playBank = new web3.eth.Contract(PlayBank.abi, playBankData.address);
+                    setPlayBank(playBank);
+                    let stakingBalance = await playBank.methods.stakingBalance(account).call();
+                    setStakingBalance(stakingBalance.toString());
+                } else {
+                    new Noty({
+                        type: 'error',
+                        text: 'Your Ethereum Wallet is not Connected!',
+                        timeout: 5000,
+                        progressBar: true
+                    }).show();
+                }
+
+                setLoading(false);
+            } catch (e) {
+                console.log("Error: ", e);
+            }
+        })();
+
+        return () => { };
+    }, [account]);
+
+    // Connect Wallet
+    // invoke to connect to wallet account
+    const connectWallet = async (e) => {
+        e.preventDefault();
+
+        if (window.ethereum) {
+            try {
+                await window.ethereum.request({ method: 'eth_requestAccounts' });
+                checkAccount()
+            } catch (err) {
+                console.log('user did not add account...', err)
+            }
+        }
+    }
+
     async function checkAccount() {
         let web3 = new Web3(window.ethereum);
         setWeb3(web3);
@@ -70,81 +165,21 @@ const Dashboard = () => {
         setAccount(accounts[0]);
     }
 
-    async function loadBlockchainData() {
-        try {
-            const web3 = new Web3(window.ethereum);
-            const networkId = await web3.eth.net.getId();
-
-            // Load mUSDT Contract
-            const tetherData = Tether.networks[networkId];
-
-            console.log(tetherData);
-
-            if (tetherData) {
-                const tether = new web3.eth.Contract(Tether.abi, tetherData.address);
-                setTether(tether);
-                console.log(tether);
-                let tetherBalance = await tether.methods.balanceOf(account).call();
-                setTetherBalance(tetherBalance.toString());
-            } else {
-                new Noty({
-                    type: 'error',
-                    text: 'Your Ethereum Wallet is not Connected!',
-                    timeout: 5000,
-                    progressBar: true
-                }).show();
-            }
-
-            // Load RWD Contract
-            const rwdData = RWD.networks[networkId];
-
-            if (rwdData) {
-                const rwd = new web3.eth.Contract(RWD.abi, rwdData.address);
-                setRwd(rwd);
-                let rwdBalance = await rwd.methods.balanceOf(account).call();
-                setRwdBalance(rwdBalance.toString());
-            } else {
-                new Noty({
-                    type: 'error',
-                    text: 'Your Ethereum Wallet is not Connected!',
-                    timeout: 5000,
-                    progressBar: true
-                }).show();
-            }
-
-            // Load PlayBank Contract
-            const playBankData = PlayBank.networks[networkId];
-
-            if (playBankData) {
-                const playBank = new web3.eth.Contract(PlayBank.abi, playBankData.address);
-                setPlayBank(playBank);
-                let stakingBalance = await playBank.methods.stakingBalance(account).call();
-                setStakingBalance(stakingBalance.toString());
-            } else {
-                new Noty({
-                    type: 'error',
-                    text: 'Your Ethereum Wallet is not Connected!',
-                    timeout: 5000,
-                    progressBar: true
-                }).show();
-            }
-
-            setLoading(false);
-        } catch (err) {
-            console.log("Error: ", err)
-        }
-    }
-
     // Staking Tokens
     const stakeTokens = (e, amount) => {
         e.preventDefault();
 
+        setLoading(true);
+
         console.log(formattedAmount);
 
         if (amount > 0) {
-            setLoading(true);
-            tether.methods.approve(playBank._address, amount).send({ from: account }).on('transactionHash', (hash) => {
-                playBank.methods.depositTokens(amount).send({ from: account }).on('transactionHash', (hash) => {
+            let convertedAmount = amount;
+            convertedAmount = amount.toString();
+            convertedAmount = web3.utils.toWei(convertedAmount, 'Ether');
+
+            tether.methods.approve(playBank._address, convertedAmount).send({ from: account }).on('transactionHash', (hash) => {
+                playBank.methods.depositTokens(convertedAmount).send({ from: account }).on('transactionHash', (hash) => {
                     setLoading(false);
                 });
             });
@@ -511,6 +546,7 @@ const Dashboard = () => {
 
                                         <button
                                             type="button"
+                                            onClick={connectWallet}
                                             className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-cyan-600 hover:bg-cyan-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-cyan-500"
                                         >
                                             Connect Wallet
